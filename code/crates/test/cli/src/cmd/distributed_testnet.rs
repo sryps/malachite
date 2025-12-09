@@ -8,14 +8,14 @@ use color_eyre::eyre::{eyre, Result};
 use tracing::info;
 
 use malachitebft_app::node::{
-    CanGeneratePrivateKey, CanMakeDistributedConfig, CanMakeGenesis, CanMakePrivateKeyFile,
-    MakeConfigSettings, Node,
+    CanGeneratePrivateKey, CanMakeDistributedConfig, CanMakeGenesis, CanMakeP2pKeyFile,
+    CanMakePrivateKeyFile, MakeConfigSettings, Node,
 };
 use malachitebft_config::*;
 
 use crate::args::Args;
 use crate::cmd::testnet::RuntimeFlavour;
-use crate::file::{save_config, save_genesis, save_priv_validator_key};
+use crate::file::{save_config, save_genesis, save_p2p_key, save_priv_validator_key};
 
 #[derive(Parser, Debug, Clone, PartialEq)]
 pub struct DistributedTestnetCmd {
@@ -94,7 +94,8 @@ impl DistributedTestnetCmd {
             + CanGeneratePrivateKey
             + CanMakeDistributedConfig
             + CanMakeGenesis
-            + CanMakePrivateKeyFile,
+            + CanMakePrivateKeyFile
+            + CanMakeP2pKeyFile,
     {
         let runtime = match self.runtime {
             RuntimeFlavour::SingleThreaded => RuntimeConfig::SingleThreaded,
@@ -150,9 +151,11 @@ where
         + CanGeneratePrivateKey
         + CanMakeDistributedConfig
         + CanMakeGenesis
-        + CanMakePrivateKeyFile,
+        + CanMakePrivateKeyFile
+        + CanMakeP2pKeyFile,
 {
     let private_keys = crate::new::generate_private_keys(node, nodes, deterministic);
+    let p2p_keys = crate::new::generate_private_keys(node, nodes, deterministic);
     let public_keys = private_keys
         .iter()
         .map(|pk| node.get_public_key(pk))
@@ -186,6 +189,9 @@ where
             &args.get_priv_validator_key_file_path()?,
             &priv_validator_key,
         )?;
+
+        let p2p_key = node.make_p2p_key_file(p2p_keys[i].clone());
+        save_p2p_key(node, &args.get_p2p_key_file_path()?, &p2p_key)?;
 
         save_genesis(node, &args.get_genesis_file_path()?, &genesis)?;
     }

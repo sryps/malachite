@@ -44,8 +44,11 @@ where
     let private_key = node.load_private_key(private_key_file);
     let public_key = node.get_public_key(&private_key);
     let address = node.get_address(&public_key);
-    let keypair = node.get_keypair(private_key.clone());
     let signing_provider = node.get_signing_provider(private_key);
+
+    let p2p_key_file = node.load_p2p_key_file()?;
+    let p2p_key = node.load_p2p_key(p2p_key_file);
+    let keypair = node.get_keypair(p2p_key);
 
     // Spawn consensus gossip
     let (network, tx_network) =

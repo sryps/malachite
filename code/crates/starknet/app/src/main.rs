@@ -51,6 +51,7 @@ pub fn main() -> color_eyre::Result<()> {
                 &config_file,
                 &args.get_genesis_file_path().unwrap(),
                 &args.get_priv_validator_key_file_path().unwrap(),
+                &args.get_p2p_key_file_path().unwrap(),
             )
             .wrap_err("Failed to run `init` command")
         }
@@ -122,6 +123,7 @@ mod tests {
             &args.get_config_file_path().unwrap(),
             &args.get_genesis_file_path().unwrap(),
             &args.get_priv_validator_key_file_path().unwrap(),
+            &args.get_p2p_key_file_path().unwrap(),
         )
         .expect("Failed to run init command");
 
@@ -133,6 +135,7 @@ mod tests {
             &files,
             &config_dir.join("priv_validator_key.json")
         ));
+        assert!(has_file(&files, &config_dir.join("p2p_key.json")));
 
         Ok(())
     }
@@ -178,6 +181,7 @@ mod tests {
             assert!(has_file(&files, &node_dir.join("config.toml")));
             assert!(has_file(&files, &node_dir.join("genesis.json")));
             assert!(has_file(&files, &node_dir.join("priv_validator_key.json")));
+            assert!(has_file(&files, &node_dir.join("p2p_key.json")));
         }
 
         Ok(())

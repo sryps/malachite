@@ -7,15 +7,15 @@ use clap::Parser;
 use tracing::{info, warn};
 
 use malachitebft_app::node::{
-    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakePrivateKeyFile,
-    MakeConfigSettings, Node,
+    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakeP2pKeyFile,
+    CanMakePrivateKeyFile, MakeConfigSettings, Node,
 };
 use malachitebft_config::{
     BootstrapProtocol, DiscoveryConfig, RuntimeConfig, Selector, TransportProtocol,
 };
 
 use crate::error::Error;
-use crate::file::{save_config, save_genesis, save_priv_validator_key};
+use crate::file::{save_config, save_genesis, save_p2p_key, save_priv_validator_key};
 use crate::new::{generate_genesis, generate_private_keys};
 
 #[derive(Parser, Debug, Clone, Default, PartialEq)]
@@ -73,9 +73,15 @@ impl InitCmd {
         config_file: &Path,
         genesis_file: &Path,
         priv_validator_key_file: &Path,
+        p2p_key_file: &Path,
     ) -> Result<(), Error>
     where
-        N: Node + CanMakeConfig + CanMakePrivateKeyFile + CanGeneratePrivateKey + CanMakeGenesis,
+        N: Node
+            + CanMakeConfig
+            + CanMakePrivateKeyFile
+            + CanMakeP2pKeyFile
+            + CanGeneratePrivateKey
+            + CanMakeGenesis,
     {
         let settings = MakeConfigSettings {
             runtime: RuntimeConfig::SingleThreaded,
@@ -102,6 +108,7 @@ impl InitCmd {
             config_file,
             genesis_file,
             priv_validator_key_file,
+            p2p_key_file,
             self.overwrite,
         )?;
 
@@ -116,10 +123,11 @@ pub fn init<N>(
     config_file: &Path,
     genesis_file: &Path,
     priv_validator_key_file: &Path,
+    p2p_key_file: &Path,
     overwrite: bool,
 ) -> Result<(), Error>
 where
-    N: Node + CanMakePrivateKeyFile + CanGeneratePrivateKey + CanMakeGenesis,
+    N: Node + CanMakePrivateKeyFile + CanMakeP2pKeyFile + CanGeneratePrivateKey + CanMakeGenesis,
 {
     // Save configuration
     if config_file.exists() && !overwrite {
@@ -140,6 +148,19 @@ where
         let private_keys = generate_private_keys(node, 1, false);
         let priv_validator_key = node.make_private_key_file(private_keys[0].clone());
         save_priv_validator_key(node, priv_validator_key_file, &priv_validator_key)?;
+    }
+
+    // Save default p2p_key
+    if p2p_key_file.exists() && !overwrite {
+        warn!(
+            file = ?p2p_key_file.display(),
+            "P2P key file already exists, skipping",
+        );
+    } else {
+        info!(file = ?p2p_key_file, "Saving P2P key");
+        let p2p_keys = generate_private_keys(node, 1, false);
+        let p2p_key = node.make_p2p_key_file(p2p_keys[0].clone());
+        save_p2p_key(node, p2p_key_file, &p2p_key)?;
     }
 
     // Save default genesis

@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 use malachitebft_app::events::{RxEvent, TxEvent};
 use malachitebft_app::node::{
     CanGeneratePrivateKey, CanMakeConfig, CanMakeDistributedConfig, CanMakeGenesis,
-    CanMakePrivateKeyFile, MakeConfigSettings, Node, NodeHandle,
+    CanMakeP2pKeyFile, CanMakePrivateKeyFile, MakeConfigSettings, Node, NodeHandle,
 };
 use malachitebft_app::types::Keypair;
 use malachitebft_config::mempool_load::UniformLoadConfig;
@@ -96,6 +96,10 @@ impl StarknetNode {
     pub fn private_key_file(&self) -> PathBuf {
         self.home_dir.join("config").join("priv_validator_key.json")
     }
+
+    pub fn p2p_key_file(&self) -> PathBuf {
+        self.home_dir.join("config").join("p2p_key.json")
+    }
 }
 
 #[async_trait]
@@ -104,6 +108,7 @@ impl Node for StarknetNode {
     type Config = Config;
     type Genesis = Genesis;
     type PrivateKeyFile = PrivateKeyFile;
+    type P2pKeyFile = PrivateKeyFile;
     type SigningProvider = Ed25519Provider;
     type NodeHandle = Handle;
 
@@ -138,6 +143,15 @@ impl Node for StarknetNode {
     fn load_private_key_file(&self) -> eyre::Result<Self::PrivateKeyFile> {
         let private_key = std::fs::read_to_string(self.private_key_file())?;
         serde_json::from_str(&private_key).map_err(|e| e.into())
+    }
+
+    fn load_p2p_key(&self, file: Self::P2pKeyFile) -> PrivateKey {
+        file.private_key
+    }
+
+    fn load_p2p_key_file(&self) -> eyre::Result<Self::P2pKeyFile> {
+        let p2p_key = std::fs::read_to_string(self.p2p_key_file())?;
+        serde_json::from_str(&p2p_key).map_err(|e| e.into())
     }
 
     fn get_signing_provider(&self, private_key: PrivateKey) -> Self::SigningProvider {
@@ -197,6 +211,12 @@ impl CanGeneratePrivateKey for StarknetNode {
 
 impl CanMakePrivateKeyFile for StarknetNode {
     fn make_private_key_file(&self, private_key: PrivateKey) -> Self::PrivateKeyFile {
+        PrivateKeyFile::from(private_key)
+    }
+}
+
+impl CanMakeP2pKeyFile for StarknetNode {
+    fn make_p2p_key_file(&self, private_key: PrivateKey) -> Self::P2pKeyFile {
         PrivateKeyFile::from(private_key)
     }
 }
@@ -453,6 +473,7 @@ fn test_starknet_node() {
     use malachitebft_test_cli::*;
 
     let priv_keys = new::generate_private_keys(&node, 1, true);
+    let p2p_keys = new::generate_private_keys(&node, 1, true);
     let pub_keys = priv_keys.iter().map(|pk| node.get_public_key(pk)).collect();
     let genesis = new::generate_genesis(&node, pub_keys, true);
 
@@ -460,6 +481,13 @@ fn test_starknet_node() {
         &node,
         &node.private_key_file(),
         &PrivateKeyFile::from(priv_keys[0].clone()),
+    )
+    .unwrap();
+
+    file::save_p2p_key(
+        &node,
+        &node.p2p_key_file(),
+        &PrivateKeyFile::from(p2p_keys[0].clone()),
     )
     .unwrap();
 

@@ -11,8 +11,8 @@ use tracing::Instrument;
 use malachitebft_app_channel::app::events::{RxEvent, TxEvent};
 use malachitebft_app_channel::app::metrics::SharedRegistry;
 use malachitebft_app_channel::app::node::{
-    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakePrivateKeyFile, EngineHandle,
-    MakeConfigSettings, Node, NodeHandle,
+    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakeP2pKeyFile,
+    CanMakePrivateKeyFile, EngineHandle, MakeConfigSettings, Node, NodeHandle,
 };
 use malachitebft_app_channel::app::types::core::{Height as _, VotingPower};
 use malachitebft_app_channel::app::types::Keypair;
@@ -38,6 +38,7 @@ pub struct App {
     pub config_file: PathBuf,
     pub genesis_file: PathBuf,
     pub private_key_file: PathBuf,
+    pub p2p_key_file: PathBuf,
     pub start_height: Option<Height>,
 }
 
@@ -67,6 +68,7 @@ impl Node for App {
     type Config = Config;
     type Genesis = Genesis;
     type PrivateKeyFile = PrivateKey;
+    type P2pKeyFile = PrivateKey;
     type SigningProvider = Ed25519Provider;
     type NodeHandle = Handle;
 
@@ -97,6 +99,15 @@ impl Node for App {
     fn load_private_key_file(&self) -> eyre::Result<Self::PrivateKeyFile> {
         let private_key = std::fs::read_to_string(&self.private_key_file)?;
         serde_json::from_str(&private_key).map_err(Into::into)
+    }
+
+    fn load_p2p_key(&self, file: Self::P2pKeyFile) -> PrivateKey {
+        file
+    }
+
+    fn load_p2p_key_file(&self) -> eyre::Result<Self::P2pKeyFile> {
+        let p2p_key = std::fs::read_to_string(&self.p2p_key_file)?;
+        serde_json::from_str(&p2p_key).map_err(Into::into)
     }
 
     fn get_signing_provider(&self, private_key: PrivateKey) -> Self::SigningProvider {
@@ -197,6 +208,12 @@ impl CanGeneratePrivateKey for App {
 
 impl CanMakePrivateKeyFile for App {
     fn make_private_key_file(&self, private_key: PrivateKey) -> Self::PrivateKeyFile {
+        private_key
+    }
+}
+
+impl CanMakeP2pKeyFile for App {
+    fn make_p2p_key_file(&self, private_key: PrivateKey) -> Self::P2pKeyFile {
         private_key
     }
 }

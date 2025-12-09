@@ -49,6 +49,7 @@ pub trait Node {
     type Config: NodeConfig + Serialize + DeserializeOwned;
     type Genesis: Serialize + DeserializeOwned;
     type PrivateKeyFile: Serialize + DeserializeOwned;
+    type P2pKeyFile: Serialize + DeserializeOwned;
     type SigningProvider: SigningProvider<Self::Context>;
     type NodeHandle: NodeHandle<Self::Context>;
 
@@ -69,6 +70,10 @@ pub trait Node {
     fn load_private_key(&self, file: Self::PrivateKeyFile) -> PrivateKey<Self::Context>;
 
     fn load_private_key_file(&self) -> eyre::Result<Self::PrivateKeyFile>;
+
+    fn load_p2p_key(&self, file: Self::P2pKeyFile) -> PrivateKey<Self::Context>;
+
+    fn load_p2p_key_file(&self) -> eyre::Result<Self::P2pKeyFile>;
 
     fn load_genesis(&self) -> eyre::Result<Self::Genesis>;
 
@@ -107,6 +112,10 @@ pub trait CanGeneratePrivateKey: Node {
 pub trait CanMakePrivateKeyFile: Node {
     fn make_private_key_file(&self, private_key: PrivateKey<Self::Context>)
         -> Self::PrivateKeyFile;
+}
+
+pub trait CanMakeP2pKeyFile: Node {
+    fn make_p2p_key_file(&self, private_key: PrivateKey<Self::Context>) -> Self::P2pKeyFile;
 }
 
 pub trait CanMakeGenesis: Node {

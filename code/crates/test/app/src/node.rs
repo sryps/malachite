@@ -13,8 +13,8 @@ use tracing::Instrument;
 use malachitebft_app_channel::app::config::*;
 use malachitebft_app_channel::app::events::{RxEvent, TxEvent};
 use malachitebft_app_channel::app::node::{
-    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakePrivateKeyFile, EngineHandle,
-    MakeConfigSettings, Node, NodeHandle,
+    CanGeneratePrivateKey, CanMakeConfig, CanMakeGenesis, CanMakeP2pKeyFile,
+    CanMakePrivateKeyFile, EngineHandle, MakeConfigSettings, Node, NodeHandle,
 };
 use malachitebft_app_channel::app::types::core::VotingPower;
 use malachitebft_app_channel::app::types::Keypair;
@@ -59,6 +59,7 @@ pub struct App {
     pub config: Config,
     pub validator_set: ValidatorSet,
     pub private_key: PrivateKey,
+    pub p2p_key: PrivateKey,
     pub start_height: Option<Height>,
     pub middleware: Option<Arc<dyn Middleware>>,
 }
@@ -69,6 +70,7 @@ impl Node for App {
     type Config = Config;
     type Genesis = Genesis;
     type PrivateKeyFile = PrivateKey;
+    type P2pKeyFile = PrivateKey;
     type SigningProvider = Ed25519Provider;
     type NodeHandle = Handle;
 
@@ -102,6 +104,14 @@ impl Node for App {
 
     fn load_private_key_file(&self) -> eyre::Result<Self::PrivateKeyFile> {
         Ok(self.private_key.clone())
+    }
+
+    fn load_p2p_key(&self, file: Self::P2pKeyFile) -> PrivateKey {
+        file
+    }
+
+    fn load_p2p_key_file(&self) -> eyre::Result<Self::P2pKeyFile> {
+        Ok(self.p2p_key.clone())
     }
 
     fn load_genesis(&self) -> eyre::Result<Self::Genesis> {
@@ -209,6 +219,12 @@ impl CanGeneratePrivateKey for App {
 
 impl CanMakePrivateKeyFile for App {
     fn make_private_key_file(&self, private_key: PrivateKey) -> Self::PrivateKeyFile {
+        private_key
+    }
+}
+
+impl CanMakeP2pKeyFile for App {
+    fn make_p2p_key_file(&self, private_key: PrivateKey) -> Self::P2pKeyFile {
         private_key
     }
 }
