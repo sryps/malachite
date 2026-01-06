@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### General
+
+- Separated P2P node key management to its own file in order to facilitate external management of the consensus key ([#26](https://github.com/informalsystems/malachite/issues/26))
+
 ### `malachitebft-core-types`
 
 - Move `SigningProvider` and `SigningProviderExt` traits into new `malachitebft-signing` crate ([#1191](https://github.com/informalsystems/malachite/pull/1191))
